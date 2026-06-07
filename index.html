@@ -440,13 +440,13 @@
               </div>
             </a>
             <!-- LinkedIn Option for Prajvaya -->
-            <a href="www.linkedin.com/in/prajvaya" target="_blank" class="network-link-card">
+            <a href="https://www.linkedin.com/in/prajvaya" target="_blank" class="network-link-card">
               <div class="network-icon">
                 <svg viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
               </div>
               <div class="network-details">
                 <span class="network-name">Synergy Coordinates</span>
-                <span class="network-address">linkedin.com/company/prajvaya</span>
+                <span class="network-address">linkedin.com/in/prajvaya</span>
               </div>
             </a>
           </div>
@@ -510,7 +510,7 @@
   <script>
 /**
  * PRAJVAYA - Vedic Ancient Wisdom & Future Tech Engineering Engine
- * Handles Canvas particle background, Web Audio API Tanpura synthesizer, cover unfold, scroll reveal stages, and outro zooms.
+ * Handles Canvas particle background, Web Audio API Sitar synthesizer, cover unfold, scroll reveal stages, and outro zooms.
  */
 
 let soundEngine = null;
@@ -1063,14 +1063,11 @@ function initCanvasBackground() {
 }
 
 /* ==========================================
-   3. WEB AUDIO API INDIAN TANPURA SYNTHESIZER
+   3. WEB AUDIO API ANCIENT SITAR SYNTHESIZER
    ========================================== */
-class TanpuraEngine {
+class SitarEngine {
   constructor() {
     this.ctx = null;
-    this.oscillators = [];
-    this.gains = [];
-    this.filters = [];
     this.isPlaying = false;
     this.muted = false;
   }
@@ -1079,88 +1076,24 @@ class TanpuraEngine {
     if (this.ctx) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     
-    // Five Tanpura string frequencies (Tuned base around C# string scale)
-    const baseFreqs = [
-      { f: 207.65, type: 'triangle', gain: 0.16 }, // Pa string (5th)
-      { f: 277.18, type: 'sawtooth', gain: 0.08 }, // Sa octave (4th)
-      { f: 277.18, type: 'triangle', gain: 0.12 }, // Sa octave (3rd)
-      { f: 138.60, type: 'sawtooth', gain: 0.09 }, // Sa fundamental (2nd)
-      { f: 69.30,  type: 'sine',     gain: 0.28 }  // Kharaj Sa (1st low base string)
-    ];
-
+    // Master gain
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = 0.35; // Master volume control
+    this.masterGain.gain.value = 0.40; // Master volume
     
-    this.masterFilter = this.ctx.createBiquadFilter();
-    this.masterFilter.type = 'lowpass';
-    this.masterFilter.frequency.value = 600;
-    this.masterFilter.Q.value = 1.3;
-
-    this.masterFilter.connect(this.masterGain);
+    // Sympathetic strings resonance delay line (Tarab)
+    this.resonanceDelay = this.ctx.createDelay();
+    this.resonanceDelay.delayTime.value = 0.035; // 35ms sympathetic echo delay
+    
+    this.resonanceGain = this.ctx.createGain();
+    this.resonanceGain.gain.value = 0.38; // Feedback gain
+    
+    // Connect feedback loop
+    this.resonanceDelay.connect(this.resonanceGain);
+    this.resonanceGain.connect(this.resonanceDelay);
+    
     this.masterGain.connect(this.ctx.destination);
-
-    baseFreqs.forEach((spec) => {
-      const sGain = this.ctx.createGain();
-      sGain.gain.value = 0; // Starts silent until plucked
-
-      const osc = this.ctx.createOscillator();
-      osc.type = spec.type;
-      osc.frequency.value = spec.f;
-      osc.detune.value = (Math.random() - 0.5) * 6; // Detuning effect
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = spec.f * 2.8;
-
-      osc.connect(filter);
-      filter.connect(sGain);
-      sGain.connect(this.masterFilter);
-
-      this.oscillators.push(osc);
-      this.gains.push(sGain);
-      this.filters.push(filter);
-      
-      osc.start();
-    });
-
-    this.initModulation();
-  }
-
-  initModulation() {
-    const lfo = this.ctx.createOscillator();
-    lfo.frequency.value = 0.07; 
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.value = 140; 
-    lfo.connect(lfoGain);
-    lfoGain.connect(this.masterFilter.frequency);
-    lfo.start();
-
-    this.pluckSequence();
-  }
-
-  pluckSequence() {
-    let pluckIndex = 0;
-    const timings = [2300, 2300, 2300, 2600]; 
-    
-    const cycle = () => {
-      if (!this.isPlaying) return;
-      const idx = pluckIndex % this.gains.length;
-      this.pluckString(idx);
-      pluckIndex++;
-      setTimeout(cycle, timings[pluckIndex % timings.length]);
-    };
-    cycle();
-  }
-
-  pluckString(index) {
-    if (this.muted) return;
-    const gainNode = this.gains[index];
-    const now = this.ctx.currentTime;
-    
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(0.01, now);
-    gainNode.gain.linearRampToValueAtTime(0.24, now + 0.12); 
-    gainNode.gain.exponentialRampToValueAtTime(0.004, now + 4.8); 
+    this.resonanceDelay.connect(this.masterGain);
+    this.resonanceGain.connect(this.masterGain);
   }
 
   start() {
@@ -1172,7 +1105,124 @@ class TanpuraEngine {
     }
     
     this.isPlaying = true;
-    this.pluckSequence();
+    this.playSequence();
+  }
+
+  playSequence() {
+    // Yaman Raga scale notes (in Hz, based on C# scale)
+    // Yaman: Sa, Re, Ga, Ma(t तीव्र), Pa, Dha, Ni, Sa
+    // Tuned base: C#3 (138.59 Hz)
+    const yamanScale = [
+      138.59, // Sa (C#3)
+      155.56, // Re (D#3)
+      174.61, // Ga (E#3/F3)
+      196.00, // Ma तीव्र (G3)
+      207.65, // Pa (G#3)
+      233.08, // Dha (A#3)
+      261.63, // Ni (C4)
+      277.18  // Sa (C#4)
+    ];
+
+    // Play a beautiful, slow, meditative sitar melody
+    const melodyPattern = [
+      0, 2, 4, 3, 4, 6, 7, 5, 4, 2, 1, 0
+    ];
+    let noteIndex = 0;
+
+    const cycle = () => {
+      if (!this.isPlaying) return;
+      
+      const scaleIdx = melodyPattern[noteIndex % melodyPattern.length];
+      const freq = yamanScale[scaleIdx];
+      
+      // Pluck the note
+      this.pluck(freq);
+      
+      noteIndex++;
+      
+      // Random timings to sound organic like a human plucking a sitar
+      const nextTime = 1400 + Math.random() * 900; 
+      setTimeout(cycle, nextTime);
+    };
+    cycle();
+  }
+
+  pluck(freq) {
+    if (this.muted || !this.ctx) return;
+    
+    const now = this.ctx.currentTime;
+    
+    // 1. Oscillators
+    // Sawtooth for the body/buzz of the sitar (buzzy string)
+    const oscBody = this.ctx.createOscillator();
+    oscBody.type = 'sawtooth';
+    oscBody.frequency.setValueAtTime(freq, now);
+    oscBody.detune.setValueAtTime((Math.random() - 0.5) * 8, now); // Detune chorus
+
+    // Triangle for the warm fundamental string depth
+    const oscFund = this.ctx.createOscillator();
+    oscFund.type = 'triangle';
+    oscFund.frequency.setValueAtTime(freq, now);
+
+    // High frequency sine for the metallic strike (Mizrab pluck transient)
+    const oscPluck = this.ctx.createOscillator();
+    oscPluck.type = 'sine';
+    oscPluck.frequency.setValueAtTime(freq * 6.5 + 400, now);
+
+    // 2. Envelopes and gains
+    const gainBody = this.ctx.createGain();
+    const gainFund = this.ctx.createGain();
+    const gainPluck = this.ctx.createGain();
+    
+    // Body envelope (Bright buzzy string decay)
+    gainBody.gain.setValueAtTime(0, now);
+    gainBody.gain.linearRampToValueAtTime(0.25, now + 0.006); // Sharp attack
+    gainBody.gain.exponentialRampToValueAtTime(0.08, now + 0.18); // Initial decay
+    gainBody.gain.exponentialRampToValueAtTime(0.001, now + 3.8); // Long decay
+
+    // Fundamental envelope (Warm body ring)
+    gainFund.gain.setValueAtTime(0, now);
+    gainFund.gain.linearRampToValueAtTime(0.20, now + 0.012);
+    gainFund.gain.exponentialRampToValueAtTime(0.12, now + 0.32);
+    gainFund.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
+
+    // Pluck envelope (Short metallic click)
+    gainPluck.gain.setValueAtTime(0.35, now);
+    gainPluck.gain.exponentialRampToValueAtTime(0.001, now + 0.05); // Very fast decay
+
+    // 3. Javari Buzz Filter (Sweeping peaking filter for sitar buzz)
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'peaking';
+    filter.Q.value = 3.5;
+    filter.frequency.setValueAtTime(2800, now); // Start very bright
+    filter.frequency.exponentialRampToValueAtTime(freq * 2.5, now + 0.25); // Sweep down
+    filter.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 1.2);  // Relax
+    
+    // Connect oscillators
+    oscBody.connect(gainBody);
+    oscFund.connect(gainFund);
+    oscPluck.connect(gainPluck);
+    
+    gainBody.connect(filter);
+    gainFund.connect(filter);
+    
+    // Pluck goes straight to master to keep the transient click crisp
+    gainPluck.connect(this.masterGain);
+    
+    filter.connect(this.masterGain);
+    
+    // Also feed a bit of the signal into the sympathetic strings delay line
+    filter.connect(this.resonanceDelay);
+
+    // Start oscillators
+    oscBody.start(now);
+    oscFund.start(now);
+    oscPluck.start(now);
+
+    // Stop after notes decay
+    oscBody.stop(now + 5.0);
+    oscFund.stop(now + 5.0);
+    oscPluck.stop(now + 0.15);
   }
 
   toggleMute() {
@@ -1184,7 +1234,7 @@ class TanpuraEngine {
         this.masterGain.gain.linearRampToValueAtTime(0, now + 0.4);
       } else {
         this.masterGain.gain.cancelScheduledValues(now);
-        this.masterGain.gain.linearRampToValueAtTime(0.35, now + 0.4);
+        this.masterGain.gain.linearRampToValueAtTime(0.40, now + 0.4);
       }
     }
     return this.muted;
@@ -1219,7 +1269,7 @@ function initBookController() {
   const webContent = document.getElementById('web-content');
   const btnAudioToggle = document.getElementById('btn-audio-toggle');
   
-  soundEngine = new TanpuraEngine();
+  soundEngine = new SitarEngine();
 
   if (openingBook) {
     openingBook.addEventListener('click', () => {
